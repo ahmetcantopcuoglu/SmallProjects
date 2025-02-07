@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Futbol Topu Sektirme Oyunu</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            background-color: lightgreen;
+            display: block;
+            margin: 20px auto;
+            border: 2px solid black;
+        }
+        #score {
+            font-size: 24px;
+            margin: 10px;
+        }
+        #restartBtn {
+            display: none;
+            font-size: 20px;
+            padding: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Futbol Topu Sektirme Oyunu</h1>
+    <p id="score">Skor: 0</p>
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
+    <button id="restartBtn" onclick="startGame()">Tekrar Oyna</button>
+    
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        let ball = { x: 200, y: 400, radius: 25, dy: 0, dx: 0, isMoving: false };
+        let gravity = 0.00; // Yer çekimi hafifçe arttırıldı
+        let bounceForce = -5.5; // Sekme biraz hızlandırıldı
+        let isGameOver = false;
+        let score = 0;
+        
+        function drawBall() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = "gray";
+            ctx.fill();
+            ctx.closePath();
+        }
+        
+        function updateBall() {
+            if (!isGameOver && ball.isMoving) {
+                ball.dy += gravity;
+                ball.y += ball.dy;
+                ball.x += ball.dx;
+                
+                if (ball.y + ball.radius >= canvas.height) {
+                    gameOver();
+                }
+                
+                // Kenarlara çarparsa yön değiştir
+                if (ball.x - ball.radius <= 0 || ball.x + ball.radius >= canvas.width) {
+                    ball.dx *= -0.8; // Çarpma etkisini azalt
+                }
+                
+                // Üst sınırdan kaçmasını önle
+                if (ball.y - ball.radius <= 0) {
+                    ball.y = ball.radius;
+                    ball.dy *= -0.8;
+                }
+            }
+        }
+        
+        function gameOver() {
+            isGameOver = true;
+            ball.isMoving = false;
+            document.getElementById("restartBtn").style.display = "block";
+        }
+        
+        canvas.addEventListener("click", function (event) {
+            let rect = canvas.getBoundingClientRect();
+            let clickX = event.clientX - rect.left;
+            let clickY = event.clientY - rect.top;
+            
+            let distance = Math.sqrt((clickX - ball.x) ** 2 + (clickY - ball.y) ** 2);
+            if (distance <= ball.radius) {
+                if (!isGameOver) {
+                    ball.isMoving = true;
+                    ball.dy = bounceForce;
+                    score++;
+                    document.getElementById("score").innerText = "Skor: " + score;
+                    
+                    let direction = (clickX - ball.x) / ball.radius;
+                    ball.dx = direction * 3; // Daha yavaş yan hareket
+                }
+            }
+        });
+        
+        function gameLoop() {
+            drawBall();
+            updateBall();
+            setTimeout(() => requestAnimationFrame(gameLoop), 3);
+        }
+        
+        function startGame() {
+            score = 0;
+            document.getElementById("score").innerText = "Skor: 0";
+            document.getElementById("restartBtn").style.display = "none";
+            ball.y = 400;
+            ball.x = 200;
+            ball.dy = 0;
+            ball.dx = 0;
+            ball.isMoving = false;
+            isGameOver = false;
+            gameLoop();
+        }
+        
+        startGame();
+    </script>
+</body>
+</html>

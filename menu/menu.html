@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafe Menüsü</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f8f8f8; }
+        nav { display: flex; justify-content: space-around; background: #333; padding: 10px; border-radius: 10px; }
+        nav a { color: white; text-decoration: none; font-size: 16px; }
+        .menu, .cart { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .item { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); text-align: center; }
+        .item img { max-width: 50px; height: 50px; border-radius: 10px; }
+        .buttons { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+        .add-to-cart-btn { margin-top: 15px; width: 100%; } /* Sepete Ekle butonunu ortalayarak genişletebiliriz */
+        button { padding: 5px 10px; border: none; background: #28a745; color: white; cursor: pointer; border-radius: 5px; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #cart-container, #wallet-container { display: none; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="#" onclick="showMenu()">Menü</a>
+        <a href="#" onclick="showCart()">Sepet</a>
+        <a href="#" onclick="showWallet()">Cüzdan</a>
+    </nav>
+
+    <div id="menu-container">
+        <h1>Kafe Menüsü</h1>
+        <div class="menu" id="menu"></div>
+        <button class="add-to-cart-btn" onclick="addAllToCart()">Sepete Ekle</button> <!-- Sepete Ekle butonunu yalnızca burada koyuyoruz -->
+    </div>
+    
+    <div id="cart-container">
+        <h1>Sepet</h1>
+        <div class="cart" id="cart"></div>
+        <h2>Toplam: <span id="total-price">0</span> TL</h2>
+        <button onclick="confirmPurchase()">Alışverişi Onayla</button>
+        <button onclick="clearCart()">Sepeti Boşalt</button>
+    </div>
+    
+    <div id="wallet-container">
+        <h1>Cüzdan</h1>
+        <p>Bakiye: <span id="wallet-balance">200</span> TL</p>
+        <input type="number" id="add-money" placeholder="Yüklemek istediğiniz miktar">
+        <button onclick="addMoney()">Para Ekle</button>
+    </div>
+
+    <script>
+        let walletBalance = 200;
+        const items = [
+            { id: 1, name: "Espresso", price: 30, img: "espresso.jpg" },
+            { id: 2, name: "Latte", price: 40, img: "latte.jpg" },
+            { id: 3, name: "Cappuccino", price: 45, img: "cappuccino.jpg" },
+            { id: 4, name: "Mocha", price: 50, img: "mocha.jpg" }
+        ];
+        
+        const cart = {};
+        const itemCount = {}; // Ürün sayacını takip etmek için bir nesne
+
+        function updateCartDisplay() {
+            const cartDiv = document.getElementById("cart");
+            cartDiv.innerHTML = "";
+            let totalPrice = 0;
+            Object.keys(cart).forEach(id => {
+                const item = items.find(i => i.id == id);
+                totalPrice += item.price * cart[id];
+                cartDiv.innerHTML += `
+                    <div class="item">
+                        <h2>${item.name}</h2>
+                        <p>${item.price} TL</p>
+                        <div class="buttons">
+                            <button onclick="removeFromCart(${id})">-</button>
+                            <span>${cart[id]}</span>
+                            <button onclick="addToCart(${id})">+</button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById("total-price").textContent = totalPrice;
+        }
+
+        function addToCart(id) {
+            cart[id] = (cart[id] || 0) + 1;
+            updateCartDisplay();
+        }
+
+        function removeFromCart(id) {
+            if (cart[id] > 0) {
+                cart[id] -= 1;
+                if (cart[id] === 0) delete cart[id];
+                updateCartDisplay();
+            }
+        }
+
+        function confirmPurchase() {
+            let totalPrice = Object.keys(cart).reduce((sum, id) => sum + items.find(i => i.id == id).price * cart[id], 0);
+            if (walletBalance >= totalPrice) {
+                walletBalance -= totalPrice;
+                document.getElementById("wallet-balance").textContent = walletBalance;
+                alert("Alışveriş başarıyla tamamlandı!");
+                clearCart();
+            } else {
+                alert("Yetersiz bakiye!");
+            }
+        }
+
+        function clearCart() {
+            Object.keys(cart).forEach(key => delete cart[key]);
+            updateCartDisplay();
+        }
+
+        function addMoney() {
+            let amount = parseInt(document.getElementById("add-money").value);
+            if (!isNaN(amount) && amount > 0) {
+                walletBalance += amount;
+                document.getElementById("wallet-balance").textContent = walletBalance;
+                alert("Para başarıyla eklendi!");
+            }
+        }
+
+        function loadMenu() {
+            const menuDiv = document.getElementById("menu");
+            items.forEach(item => {
+                menuDiv.innerHTML += `
+                    <div class="item">
+                        <img src="${item.img}" alt="${item.name} Görseli">
+                        <h2>${item.name}</h2>
+                        <p>${item.price} TL</p>
+                        <div class="buttons">
+                            <button onclick="decreaseQuantity(${item.id})">-</button>
+                            <span id="item-count-${item.id}">0</span>
+                            <button onclick="increaseQuantity(${item.id})">+</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function increaseQuantity(id) {
+            itemCount[id] = (itemCount[id] || 0) + 1;
+            document.getElementById(`item-count-${id}`).textContent = itemCount[id];
+        }
+
+        function decreaseQuantity(id) {
+            if (itemCount[id] > 0) {
+                itemCount[id] -= 1;
+                document.getElementById(`item-count-${id}`).textContent = itemCount[id];
+            }
+        }
+
+        function addItemToCart(id) {
+            if (itemCount[id] > 0) {
+                cart[id] = (cart[id] || 0) + itemCount[id];
+                itemCount[id] = 0; // Sayacı sıfırlıyoruz
+                updateCartDisplay();
+            }
+        }
+
+        function addAllToCart() {
+            items.forEach(item => {
+                if (itemCount[item.id] > 0) {
+                    cart[item.id] = (cart[item.id] || 0) + itemCount[item.id];
+                    itemCount[item.id] = 0; // Sayacı sıfırlıyoruz
+                }
+            });
+            updateCartDisplay();
+        }
+
+        function showMenu() {
+            document.getElementById("menu-container").style.display = "block";
+            document.getElementById("cart-container").style.display = "none";
+            document.getElementById("wallet-container").style.display = "none";
+        }
+
+        function showCart() {
+            document.getElementById("menu-container").style.display = "none";
+            document.getElementById("cart-container").style.display = "block";
+            document.getElementById("wallet-container").style.display = "none";
+            updateCartDisplay();
+        }
+
+        function showWallet() {
+            document.getElementById("menu-container").style.display = "none";
+            document.getElementById("cart-container").style.display = "none";
+            document.getElementById("wallet-container").style.display = "block";
+        }
+
+        window.onload = loadMenu;
+    </script>
+</body>
+</html>
